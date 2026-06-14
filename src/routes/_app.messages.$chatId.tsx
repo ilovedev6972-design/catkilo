@@ -83,7 +83,7 @@ function Chat() {
     try {
       // Derive members from chatId (sorted "uidA_uidB") so the doc always has both
       const members = chatId.split("_");
-      const otherId = other?.uid ?? members.find((m) => m !== user.uid);
+      const otherId = other?.uid ?? members.find((m: string) => m !== user.uid);
       const memberList = otherId ? Array.from(new Set([user.uid, otherId])) : members;
 
       // Ensure chat doc exists with members BEFORE writing message so the friend can find it
