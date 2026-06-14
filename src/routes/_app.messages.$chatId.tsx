@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ref as dbRef, onValue, push, set as dbSet, serverTimestamp as rtdbTime, onDisconnect, remove, update } from "firebase/database";
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { toast } from "sonner";
 import { rtdb, db } from "../lib/firebase";
 import { useAuth } from "../lib/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
