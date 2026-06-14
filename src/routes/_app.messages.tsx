@@ -23,13 +23,13 @@ function Messages() {
     if (!user) return;
     const q = query(collection(db, "chats"), where("members", "array-contains", user.uid));
     const unsub = onSnapshot(q, async (snap) => {
-      const arr = await Promise.all(snap.docs.map(async (d) => {
+      const arr: any[] = await Promise.all(snap.docs.map(async (d) => {
         const data = d.data();
         const otherId = data.members.find((m: string) => m !== user.uid);
         const other = await getDoc(doc(db, "users", otherId));
         return { id: d.id, other: other.data(), ...data };
       }));
-      arr.sort((a, b) => (b.lastMessageAt?.toMillis?.() ?? 0) - (a.lastMessageAt?.toMillis?.() ?? 0));
+      arr.sort((a: any, b: any) => (b.lastMessageAt?.toMillis?.() ?? 0) - (a.lastMessageAt?.toMillis?.() ?? 0));
       setChats(arr);
     });
     return unsub;
