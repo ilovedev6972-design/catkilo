@@ -68,7 +68,7 @@ function AuthPage() {
           createdAt: serverTimestamp(),
         });
         await setDoc(doc(db, "usernames", uname), { uid: cred.user.uid });
-        toast.success("Welcome to Squareloop!");
+        toast.success("Welcome to CAT KILO!");
       } else if (mode === "signin") {
         await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
         await signInWithEmailAndPassword(auth, email.trim(), password);
@@ -91,7 +91,7 @@ function AuthPage() {
         <div className="relative z-10">
           <div className="flex items-center gap-2">
             <div className="h-10 w-10 rounded-2xl bg-background/20 backdrop-blur grid place-items-center font-display text-xl font-bold">S</div>
-            <span className="font-display text-2xl font-bold">Squareloop</span>
+            <span className="font-display text-2xl font-bold">CAT KILO</span>
           </div>
         </div>
         <div className="relative z-10 space-y-4">
@@ -110,7 +110,7 @@ function AuthPage() {
         <div className="mx-auto w-full max-w-sm">
           <div className="lg:hidden mb-8 flex items-center gap-2">
             <div className="h-10 w-10 rounded-2xl bg-primary text-primary-foreground grid place-items-center font-display text-xl font-bold">S</div>
-            <span className="font-display text-2xl font-bold">Squareloop</span>
+            <span className="font-display text-2xl font-bold">CAT KILO</span>
           </div>
           <h2 className="font-display text-3xl font-bold">
             {mode === "signup" ? "Create your account" : mode === "forgot" ? "Reset password" : "Welcome back"}
