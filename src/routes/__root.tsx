@@ -16,9 +16,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "CAT KILO — Share your moments" },
+      { title: "CAT KILO" },
       { name: "description", content: "A social space to share photos, reels and stories." },
       { name: "theme-color", content: "#f5f1ea" },
+      { property: "og:title", content: "CAT KILO" },
+      { name: "twitter:title", content: "CAT KILO" },
+      { property: "og:description", content: "A social space to share photos, reels and stories." },
+      { name: "twitter:description", content: "A social space to share photos, reels and stories." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ae27830f-3168-4998-a2fd-34f821c80e42/id-preview-a0c0d588--ff397c62-c369-4688-87ae-b687d4a786f2.lovable.app-1781438914724.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ae27830f-3168-4998-a2fd-34f821c80e42/id-preview-a0c0d588--ff397c62-c369-4688-87ae-b687d4a786f2.lovable.app-1781438914724.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
