@@ -9,38 +9,209 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppReelsRouteImport } from './routes/_app.reels'
+import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
+import { Route as AppMessagesRouteImport } from './routes/_app.messages'
+import { Route as AppFeedRouteImport } from './routes/_app.feed'
+import { Route as AppExploreRouteImport } from './routes/_app.explore'
+import { Route as AppCreateRouteImport } from './routes/_app.create'
+import { Route as AppAdminRouteImport } from './routes/_app.admin'
+import { Route as AppProfileUsernameRouteImport } from './routes/_app.profile.$username'
+import { Route as AppPostPostIdRouteImport } from './routes/_app.post.$postId'
+import { Route as AppMessagesChatIdRouteImport } from './routes/_app.messages.$chatId'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReelsRoute = AppReelsRouteImport.update({
+  id: '/reels',
+  path: '/reels',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMessagesRoute = AppMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFeedRoute = AppFeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExploreRoute = AppExploreRouteImport.update({
+  id: '/explore',
+  path: '/explore',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCreateRoute = AppCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileUsernameRoute = AppProfileUsernameRouteImport.update({
+  id: '/profile/$username',
+  path: '/profile/$username',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPostPostIdRoute = AppPostPostIdRouteImport.update({
+  id: '/post/$postId',
+  path: '/post/$postId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMessagesChatIdRoute = AppMessagesChatIdRouteImport.update({
+  id: '/$chatId',
+  path: '/$chatId',
+  getParentRoute: () => AppMessagesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/admin': typeof AppAdminRoute
+  '/create': typeof AppCreateRoute
+  '/explore': typeof AppExploreRoute
+  '/feed': typeof AppFeedRoute
+  '/messages': typeof AppMessagesRouteWithChildren
+  '/notifications': typeof AppNotificationsRoute
+  '/reels': typeof AppReelsRoute
+  '/settings': typeof AppSettingsRoute
+  '/messages/$chatId': typeof AppMessagesChatIdRoute
+  '/post/$postId': typeof AppPostPostIdRoute
+  '/profile/$username': typeof AppProfileUsernameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/admin': typeof AppAdminRoute
+  '/create': typeof AppCreateRoute
+  '/explore': typeof AppExploreRoute
+  '/feed': typeof AppFeedRoute
+  '/messages': typeof AppMessagesRouteWithChildren
+  '/notifications': typeof AppNotificationsRoute
+  '/reels': typeof AppReelsRoute
+  '/settings': typeof AppSettingsRoute
+  '/messages/$chatId': typeof AppMessagesChatIdRoute
+  '/post/$postId': typeof AppPostPostIdRoute
+  '/profile/$username': typeof AppProfileUsernameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_app/admin': typeof AppAdminRoute
+  '/_app/create': typeof AppCreateRoute
+  '/_app/explore': typeof AppExploreRoute
+  '/_app/feed': typeof AppFeedRoute
+  '/_app/messages': typeof AppMessagesRouteWithChildren
+  '/_app/notifications': typeof AppNotificationsRoute
+  '/_app/reels': typeof AppReelsRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/messages/$chatId': typeof AppMessagesChatIdRoute
+  '/_app/post/$postId': typeof AppPostPostIdRoute
+  '/_app/profile/$username': typeof AppProfileUsernameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/admin'
+    | '/create'
+    | '/explore'
+    | '/feed'
+    | '/messages'
+    | '/notifications'
+    | '/reels'
+    | '/settings'
+    | '/messages/$chatId'
+    | '/post/$postId'
+    | '/profile/$username'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/admin'
+    | '/create'
+    | '/explore'
+    | '/feed'
+    | '/messages'
+    | '/notifications'
+    | '/reels'
+    | '/settings'
+    | '/messages/$chatId'
+    | '/post/$postId'
+    | '/profile/$username'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/auth'
+    | '/_app/admin'
+    | '/_app/create'
+    | '/_app/explore'
+    | '/_app/feed'
+    | '/_app/messages'
+    | '/_app/notifications'
+    | '/_app/reels'
+    | '/_app/settings'
+    | '/_app/messages/$chatId'
+    | '/_app/post/$postId'
+    | '/_app/profile/$username'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +219,131 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/reels': {
+      id: '/_app/reels'
+      path: '/reels'
+      fullPath: '/reels'
+      preLoaderRoute: typeof AppReelsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/notifications': {
+      id: '/_app/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/messages': {
+      id: '/_app/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof AppMessagesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/feed': {
+      id: '/_app/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof AppFeedRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/explore': {
+      id: '/_app/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof AppExploreRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/create': {
+      id: '/_app/create'
+      path: '/create'
+      fullPath: '/create'
+      preLoaderRoute: typeof AppCreateRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profile/$username': {
+      id: '/_app/profile/$username'
+      path: '/profile/$username'
+      fullPath: '/profile/$username'
+      preLoaderRoute: typeof AppProfileUsernameRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/post/$postId': {
+      id: '/_app/post/$postId'
+      path: '/post/$postId'
+      fullPath: '/post/$postId'
+      preLoaderRoute: typeof AppPostPostIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/messages/$chatId': {
+      id: '/_app/messages/$chatId'
+      path: '/$chatId'
+      fullPath: '/messages/$chatId'
+      preLoaderRoute: typeof AppMessagesChatIdRouteImport
+      parentRoute: typeof AppMessagesRoute
+    }
   }
 }
 
+interface AppMessagesRouteChildren {
+  AppMessagesChatIdRoute: typeof AppMessagesChatIdRoute
+}
+
+const AppMessagesRouteChildren: AppMessagesRouteChildren = {
+  AppMessagesChatIdRoute: AppMessagesChatIdRoute,
+}
+
+const AppMessagesRouteWithChildren = AppMessagesRoute._addFileChildren(
+  AppMessagesRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppAdminRoute: typeof AppAdminRoute
+  AppCreateRoute: typeof AppCreateRoute
+  AppExploreRoute: typeof AppExploreRoute
+  AppFeedRoute: typeof AppFeedRoute
+  AppMessagesRoute: typeof AppMessagesRouteWithChildren
+  AppNotificationsRoute: typeof AppNotificationsRoute
+  AppReelsRoute: typeof AppReelsRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppPostPostIdRoute: typeof AppPostPostIdRoute
+  AppProfileUsernameRoute: typeof AppProfileUsernameRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAdminRoute: AppAdminRoute,
+  AppCreateRoute: AppCreateRoute,
+  AppExploreRoute: AppExploreRoute,
+  AppFeedRoute: AppFeedRoute,
+  AppMessagesRoute: AppMessagesRouteWithChildren,
+  AppNotificationsRoute: AppNotificationsRoute,
+  AppReelsRoute: AppReelsRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppPostPostIdRoute: AppPostPostIdRoute,
+  AppProfileUsernameRoute: AppProfileUsernameRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
