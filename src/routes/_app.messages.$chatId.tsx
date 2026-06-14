@@ -80,20 +80,39 @@ function Chat() {
 
   async function send(content: { text?: string; imageUrl?: string }) {
     if (!user || !profile) return;
-    const r = push(dbRef(rtdb, `messages/${chatId}`));
-    await dbSet(r, {
-      senderId: user.uid,
-      senderName: profile.username,
-      text: content.text ?? "",
-      imageUrl: content.imageUrl ?? "",
-      createdAt: Date.now(),
-      readBy: { [user.uid]: true },
-    });
-    await updateDoc(doc(db, "chats", chatId), {
-      lastMessage: content.text || "📷 Image",
-      lastMessageAt: serverTimestamp(),
-    });
+    try {
+      // Derive members from chatId (sorted "uidA_uidB") so the doc always has both
+      const members = chatId.split("_");
+      const otherId = other?.uid ?? members.find((m) => m !== user.uid);
+      const memberList = otherId ? Array.from(new Set([user.uid, otherId])) : members;
+
+      // Ensure chat doc exists with members BEFORE writing message so the friend can find it
+      await setDoc(
+        doc(db, "chats", chatId),
+        {
+          members: memberList,
+          lastMessage: content.text || "📷 Image",
+          lastMessageAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+
+      const r = push(dbRef(rtdb, `messages/${chatId}`));
+      await dbSet(r, {
+        senderId: user.uid,
+        senderName: profile.username,
+        text: content.text ?? "",
+        imageUrl: content.imageUrl ?? "",
+        createdAt: Date.now(),
+        readBy: { [user.uid]: true },
+      });
+    } catch (err: any) {
+      console.error("send message failed", err);
+      toast.error(err?.message ?? "Could not send message. Check your Firebase rules.");
+    }
   }
+
 
   async function onSend(e: React.FormEvent) {
     e.preventDefault();
