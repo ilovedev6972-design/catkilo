@@ -48,7 +48,7 @@ function AppLayout() {
       <aside className="hidden md:flex fixed inset-y-0 left-0 w-64 border-r border-border bg-sidebar text-sidebar-foreground flex-col p-4 z-30">
         <Link to="/feed" className="flex items-center gap-2 px-2 py-2">
           <div className="h-9 w-9 rounded-2xl bg-primary text-primary-foreground grid place-items-center font-display text-lg font-bold">S</div>
-          <span className="font-display text-xl font-bold">Squareloop</span>
+          <span className="font-display text-xl font-bold">CAT KILO</span>
         </Link>
         <nav className="mt-6 space-y-1 flex-1">
           {nav.map((n) => {
@@ -110,7 +110,7 @@ function AppLayout() {
       <header className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 h-14 bg-background/80 backdrop-blur border-b border-border">
         <Link to="/feed" className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-xl bg-primary text-primary-foreground grid place-items-center font-display font-bold">S</div>
-          <span className="font-display text-lg font-bold">Squareloop</span>
+          <span className="font-display text-lg font-bold">CAT KILO</span>
         </Link>
         <div className="flex items-center gap-1">
           <Link to="/explore" className="p-2 rounded-lg hover:bg-accent"><Search className="h-5 w-5" /></Link>

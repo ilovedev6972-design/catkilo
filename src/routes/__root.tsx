@@ -16,7 +16,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Squareloop — Share your moments" },
+      { title: "CAT KILO — Share your moments" },
       { name: "description", content: "A social space to share photos, reels and stories." },
       { name: "theme-color", content: "#f5f1ea" },
     ],
