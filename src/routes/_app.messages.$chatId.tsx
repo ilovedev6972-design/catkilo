@@ -1,6 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ref as dbRef, onValue, push, set as dbSet, onDisconnect, remove, update } from "firebase/database";
+import {
+  ref as dbRef,
+  onValue,
+  push,
+  set as dbSet,
+  onDisconnect,
+  remove,
+  update,
+} from "firebase/database";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "sonner";
 import { rtdb, db } from "../lib/firebase";
@@ -18,6 +26,31 @@ export const Route = createFileRoute("/_app/messages/$chatId")({
   ssr: false,
   component: Chat,
 });
+
+type ChatUser = {
+  uid: string;
+  username?: string;
+  displayName?: string;
+  photoURL?: string;
+};
+
+type ChatMessage = {
+  id: string;
+  senderId: string;
+  senderName?: string;
+  text?: string;
+  imageUrl?: string;
+  createdAt?: number;
+  readBy?: Record<string, boolean>;
+};
+
+type Presence = {
+  online?: boolean;
+  lastSeen?: number;
+};
+
+const errorMessage = (err: unknown, fallback: string) =>
+  err instanceof Error ? err.message : fallback;
 
 const chatMembersFromId = (chatId: string) => chatId.split("_").filter(Boolean);
 const toMemberMap = (members: string[]) =>
