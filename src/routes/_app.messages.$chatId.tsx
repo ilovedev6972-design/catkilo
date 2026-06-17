@@ -63,12 +63,12 @@ function Chat() {
   const { chatId } = Route.useParams();
   const { user, profile } = useAuth();
   const { theme } = useTheme();
-  const [other, setOther] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [other, setOther] = useState<ChatUser | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const [typing, setTyping] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
-  const [presence, setPresence] = useState<any>(null);
+  const [presence, setPresence] = useState<Presence | null>(null);
   const [chatReady, setChatReady] = useState(false);
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -85,7 +85,9 @@ function Chat() {
       try {
         const cs = await getDoc(doc(db, "chats", chatId));
         const docMembers = cs.data()?.members;
-        if (Array.isArray(docMembers) && docMembers.includes(user.uid)) members = docMembers;
+        if (Array.isArray(docMembers) && docMembers.includes(user.uid)) {
+          members = docMembers;
+        }
       } catch (err) {
         console.warn("chat metadata unavailable", err);
       }
@@ -98,23 +100,29 @@ function Chat() {
         return;
       }
 
-      await dbSet(dbRef(rtdb, `chatMembers/${chatId}`), toMemberMap([user.uid, otherId])).catch((err) => {
-        console.warn("chat membership mirror unavailable", err);
-      });
+      await dbSet(dbRef(rtdb, `chatMembers/${chatId}`), toMemberMap([user.uid, otherId])).catch(
+        (err) => {
+          console.warn("chat membership mirror unavailable", err);
+        },
+      );
 
       if (otherId) {
         const u = await getDoc(doc(db, "users", otherId));
         if (cancelled) return;
         setOther({ uid: otherId, ...u.data() });
         // presence
-        stopPresence = onValue(dbRef(rtdb, `presence/${otherId}`), (snap) => setPresence(snap.val()));
+        stopPresence = onValue(dbRef(rtdb, `presence/${otherId}`), (snap) =>
+          setPresence(snap.val()),
+        );
         // typing
-        stopTyping = onValue(dbRef(rtdb, `typing/${chatId}/${otherId}`), (snap) => setOtherTyping(!!snap.val()));
+        stopTyping = onValue(dbRef(rtdb, `typing/${chatId}/${otherId}`), (snap) =>
+          setOtherTyping(!!snap.val()),
+        );
       }
       setChatReady(true);
     })().catch((err) => {
       console.error("load chat failed", err);
-      toast.error(err?.message ?? "Could not open this conversation.");
+      toast.error(errorMessage(err, "Could not open this conversation."));
       setChatReady(true);
     });
     return () => {
