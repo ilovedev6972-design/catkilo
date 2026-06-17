@@ -6,6 +6,7 @@ import { useAuth } from "../lib/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Input } from "../components/ui/input";
 import { Search } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/messages")({
   ssr: false,
@@ -25,12 +26,16 @@ function Messages() {
     const unsub = onSnapshot(q, async (snap) => {
       const arr: any[] = await Promise.all(snap.docs.map(async (d) => {
         const data = d.data();
-        const otherId = data.members.find((m: string) => m !== user.uid);
-        const other = await getDoc(doc(db, "users", otherId));
-        return { id: d.id, other: other.data(), ...data };
+        const members = Array.isArray(data.members) ? data.members : [];
+        const otherId = members.find((m: string) => m !== user.uid);
+        const other = otherId ? await getDoc(doc(db, "users", otherId)) : null;
+        return { id: d.id, other: other?.data() ?? null, ...data };
       }));
       arr.sort((a: any, b: any) => (b.lastMessageAt?.toMillis?.() ?? 0) - (a.lastMessageAt?.toMillis?.() ?? 0));
       setChats(arr);
+    }, (err) => {
+      console.error("load chats failed", err);
+      toast.error("Could not load chats. Publish the Firebase Firestore rules from FIREBASE_SECURITY_RULES.txt.");
     });
     return unsub;
   }, [user]);
@@ -47,14 +52,20 @@ function Messages() {
 
   async function startChat(otherUid: string) {
     if (!user) return;
-    const chatId = [user.uid, otherUid].sort().join("_");
-    const ref = doc(db, "chats", chatId);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      const { setDoc, serverTimestamp } = await import("firebase/firestore");
-      await setDoc(ref, { members: [user.uid, otherUid], createdAt: serverTimestamp(), lastMessage: "", lastMessageAt: serverTimestamp() });
+    try {
+      const members = [user.uid, otherUid].sort();
+      const chatId = members.join("_");
+      const ref = doc(db, "chats", chatId);
+      const snap = await getDoc(ref);
+      if (!snap.exists() || !Array.isArray(snap.data().members)) {
+        const { setDoc, serverTimestamp } = await import("firebase/firestore");
+        await setDoc(ref, { members, createdAt: serverTimestamp(), updatedAt: serverTimestamp(), lastMessage: "", lastMessageAt: serverTimestamp() }, { merge: true });
+      }
+      navigate({ to: "/messages/$chatId", params: { chatId } });
+    } catch (err: any) {
+      console.error("start chat failed", err);
+      toast.error(err?.message ?? "Could not start chat. Check your Firebase rules.");
     }
-    navigate({ to: "/messages/$chatId", params: { chatId } });
   }
 
   return (

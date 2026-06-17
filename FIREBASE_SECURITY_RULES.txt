@@ -48,8 +48,12 @@ service cloud.firestore {
     }
 
     match /chats/{cid} {
-      allow read, write: if isSignedIn() && request.auth.uid in resource.data.members
-        || (request.method == 'create' && request.auth.uid in request.resource.data.members);
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
+      allow read: if isSignedIn() && request.auth.uid in resource.data.members;
+      allow update: if isSignedIn() && (
+        request.auth.uid in resource.data.members || request.auth.uid in request.resource.data.members
+      );
+      allow delete: if isSignedIn() && request.auth.uid in resource.data.members;
     }
 
     match /notifications/{nid} {
@@ -67,7 +71,21 @@ service cloud.firestore {
   "rules": {
     "presence": { "$uid": { ".read": "auth != null", ".write": "auth != null && auth.uid == $uid" } },
     "typing":   { "$chatId": { "$uid": { ".read": "auth != null", ".write": "auth != null && auth.uid == $uid" } } },
-    "messages": { "$chatId": { ".read": "auth != null", ".write": "auth != null" } }
+    "chatMembers": {
+      "$chatId": {
+        ".read": "auth != null && data.child(auth.uid).val() == true",
+        ".write": "auth != null && newData.child(auth.uid).val() == true"
+      }
+    },
+    "messages": {
+      "$chatId": {
+        ".read": "auth != null && root.child('chatMembers').child($chatId).child(auth.uid).val() == true",
+        ".write": "auth != null && root.child('chatMembers').child($chatId).child(auth.uid).val() == true",
+        "$messageId": {
+          ".validate": "newData.hasChildren(['senderId', 'createdAt', 'readBy']) && newData.child('senderId').val() == auth.uid"
+        }
+      }
+    }
   }
 }
 

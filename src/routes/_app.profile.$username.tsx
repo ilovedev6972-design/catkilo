@@ -53,6 +53,7 @@ function Profile() {
   if (!user2) return <div className="p-8 text-center text-muted-foreground">User not found</div>;
 
   const isMe = user?.uid === user2.uid;
+  const chatId = user ? [user.uid, user2.uid].sort().join("_") : "";
 
   async function follow() {
     if (!user) return;
@@ -80,7 +81,7 @@ function Profile() {
             ) : (
               <>
                 <Button variant={following ? "secondary" : "default"} onClick={follow}>{following ? "Following" : "Follow"}</Button>
-                <Link to="/messages"><Button variant="secondary">Message</Button></Link>
+                <Link to="/messages/$chatId" params={{ chatId }}><Button variant="secondary">Message</Button></Link>
               </>
             )}
           </div>
