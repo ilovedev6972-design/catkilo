@@ -1,53 +1,110 @@
-import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import { collection, query, where, onSnapshot, doc, getDoc, getDocs, limit } from "firebase/firestore";
-import { db } from "../lib/firebase";
-import { useAuth } from "../lib/auth-context";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  onSnapshot,
+  query,
+  where,
+} from "firebase/firestore";
+import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Input } from "../components/ui/input";
-import { Search } from "lucide-react";
-import { toast } from "sonner";
+import { useAuth } from "../lib/auth-context";
+import { db } from "../lib/firebase";
 
 export const Route = createFileRoute("/_app/messages")({
   ssr: false,
   component: Messages,
 });
 
+type UserResult = {
+  uid: string;
+  username?: string;
+  photoURL?: string;
+};
+
+type ChatSummary = {
+  id: string;
+  members?: string[];
+  other: UserResult | null;
+  lastMessage?: string;
+  lastMessageAt?: { toMillis?: () => number };
+};
+
+const errorMessage = (err: unknown, fallback: string) =>
+  err instanceof Error ? err.message : fallback;
+
 function Messages() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const [chats, setChats] = useState<any[]>([]);
+  const [chats, setChats] = useState<ChatSummary[]>([]);
   const [search, setSearch] = useState("");
-  const [searchRes, setSearchRes] = useState<any[]>([]);
+  const [searchRes, setSearchRes] = useState<UserResult[]>([]);
   const chatOpen = pathname.startsWith("/messages/");
 
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, "chats"), where("members", "array-contains", user.uid));
-    const unsub = onSnapshot(q, async (snap) => {
-      const arr: any[] = await Promise.all(snap.docs.map(async (d) => {
-        const data = d.data();
-        const members = Array.isArray(data.members) ? data.members : [];
-        const otherId = members.find((m: string) => m !== user.uid);
-        const other = otherId ? await getDoc(doc(db, "users", otherId)) : null;
-        return { id: d.id, other: other?.data() ?? null, ...data };
-      }));
-      arr.sort((a: any, b: any) => (b.lastMessageAt?.toMillis?.() ?? 0) - (a.lastMessageAt?.toMillis?.() ?? 0));
-      setChats(arr);
-    }, (err) => {
-      console.error("load chats failed", err);
-      toast.error("Could not load chats. Publish the Firebase Firestore rules from FIREBASE_SECURITY_RULES.txt.");
-    });
+    const unsub = onSnapshot(
+      q,
+      async (snap) => {
+        const arr = await Promise.all(
+          snap.docs.map(async (d) => {
+            const data = d.data();
+            const members = Array.isArray(data.members) ? (data.members as string[]) : [];
+            const otherId = members.find((memberId) => memberId !== user.uid);
+            const other = otherId ? await getDoc(doc(db, "users", otherId)) : null;
+
+            return {
+              id: d.id,
+              lastMessage: typeof data.lastMessage === "string" ? data.lastMessage : "",
+              lastMessageAt: data.lastMessageAt as ChatSummary["lastMessageAt"],
+              members,
+              other: other?.data() ? ({ uid: otherId ?? "", ...other.data() } as UserResult) : null,
+            };
+          }),
+        );
+        arr.sort(
+          (a, b) => (b.lastMessageAt?.toMillis?.() ?? 0) - (a.lastMessageAt?.toMillis?.() ?? 0),
+        );
+        setChats(arr);
+      },
+      (err) => {
+        console.error("load chats failed", err);
+        toast.error(
+          "Could not load chats. Publish the Firebase Firestore rules from FIREBASE_SECURITY_RULES.txt.",
+        );
+      },
+    );
     return unsub;
   }, [user]);
 
   useEffect(() => {
-    if (!search.trim()) { setSearchRes([]); return; }
+    if (!search.trim()) {
+      setSearchRes([]);
+      return;
+    }
     const term = search.toLowerCase().trim();
     const t = setTimeout(async () => {
-      const snap = await getDocs(query(collection(db, "users"), where("username", ">=", term), where("username", "<=", term + "\uf8ff"), limit(10)));
-      setSearchRes(snap.docs.map((d) => d.data()).filter((u: any) => u.uid !== user?.uid));
+      const snap = await getDocs(
+        query(
+          collection(db, "users"),
+          where("username", ">=", term),
+          where("username", "<=", `${term}\uf8ff`),
+          limit(10),
+        ),
+      );
+      setSearchRes(
+        snap.docs
+          .map((d) => d.data() as UserResult)
+          .filter((searchUser) => searchUser.uid !== user?.uid),
+      );
     }, 200);
     return () => clearTimeout(t);
   }, [search, user]);
@@ -61,12 +118,22 @@ function Messages() {
       const snap = await getDoc(ref);
       if (!snap.exists() || !Array.isArray(snap.data().members)) {
         const { setDoc, serverTimestamp } = await import("firebase/firestore");
-        await setDoc(ref, { members, createdAt: serverTimestamp(), updatedAt: serverTimestamp(), lastMessage: "", lastMessageAt: serverTimestamp() }, { merge: true });
+        await setDoc(
+          ref,
+          {
+            createdAt: serverTimestamp(),
+            lastMessage: "",
+            lastMessageAt: serverTimestamp(),
+            members,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
       }
       navigate({ to: "/messages/$chatId", params: { chatId } });
-    } catch (err: any) {
+    } catch (err) {
       console.error("start chat failed", err);
-      toast.error(err?.message ?? "Could not start chat. Check your Firebase rules.");
+      toast.error(errorMessage(err, "Could not start chat. Check your Firebase rules."));
     }
   }
 
@@ -75,26 +142,56 @@ function Messages() {
       <h1 className="font-display text-3xl font-bold mb-6">Messages</h1>
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find a user..." className="pl-10 rounded-2xl" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Find a user..."
+          className="rounded-2xl pl-10"
+        />
       </div>
       {searchRes.length > 0 && (
         <div className="mb-4 bg-card border border-border rounded-2xl divide-y divide-border">
-          {searchRes.map((u: any) => (
-            <button key={u.uid} onClick={() => startChat(u.uid)} className="w-full flex items-center gap-3 p-3 hover:bg-accent text-left">
-              <Avatar className="h-10 w-10"><AvatarImage src={u.photoURL} /><AvatarFallback>{u.username[0]?.toUpperCase()}</AvatarFallback></Avatar>
-              <div><div className="font-semibold text-sm">{u.username}</div><div className="text-xs text-muted-foreground">Start chat</div></div>
+          {searchRes.map((u) => (
+            <button
+              key={u.uid}
+              onClick={() => startChat(u.uid)}
+              className="flex w-full items-center gap-3 p-3 text-left hover:bg-accent"
+              type="button"
+            >
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={u.photoURL} />
+                <AvatarFallback>{u.username?.[0]?.toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="text-sm font-semibold">{u.username}</div>
+                <div className="text-xs text-muted-foreground">Start chat</div>
+              </div>
             </button>
           ))}
         </div>
       )}
       <div className="space-y-1">
-        {chats.length === 0 && <p className="text-muted-foreground text-sm">No conversations yet. Search someone to start chatting.</p>}
+        {chats.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            No conversations yet. Search someone to start chatting.
+          </p>
+        )}
         {chats.map((c) => (
-          <Link key={c.id} to="/messages/$chatId" params={{ chatId: c.id }} className="flex items-center gap-3 p-3 hover:bg-accent rounded-2xl">
-            <Avatar className="h-12 w-12"><AvatarImage src={c.other?.photoURL} /><AvatarFallback>{c.other?.username?.[0]?.toUpperCase()}</AvatarFallback></Avatar>
+          <Link
+            key={c.id}
+            to="/messages/$chatId"
+            params={{ chatId: c.id }}
+            className="flex items-center gap-3 rounded-2xl p-3 hover:bg-accent"
+          >
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={c.other?.photoURL} />
+              <AvatarFallback>{c.other?.username?.[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-sm">{c.other?.username}</div>
-              <div className="text-xs text-muted-foreground truncate">{c.lastMessage || "Tap to chat"}</div>
+              <div className="text-sm font-semibold">{c.other?.username ?? "Chat"}</div>
+              <div className="truncate text-xs text-muted-foreground">
+                {c.lastMessage || "Tap to chat"}
+              </div>
             </div>
           </Link>
         ))}
@@ -104,8 +201,22 @@ function Messages() {
 
   return (
     <div className="md:grid md:grid-cols-[22rem_minmax(0,1fr)] md:h-screen">
-      <aside className={chatOpen ? "hidden md:block md:border-r md:border-border md:overflow-y-auto" : "md:border-r md:border-border md:overflow-y-auto"}>{inbox}</aside>
-      <section className={chatOpen ? "min-h-[calc(100vh-3.5rem)] md:min-h-0" : "hidden md:grid place-items-center text-sm text-muted-foreground"}>
+      <aside
+        className={
+          chatOpen
+            ? "hidden md:block md:overflow-y-auto md:border-r md:border-border"
+            : "md:overflow-y-auto md:border-r md:border-border"
+        }
+      >
+        {inbox}
+      </aside>
+      <section
+        className={
+          chatOpen
+            ? "min-h-[calc(100vh-3.5rem)] md:min-h-0"
+            : "hidden place-items-center text-sm text-muted-foreground md:grid"
+        }
+      >
         {chatOpen ? <Outlet /> : <p>Select a chat or search for someone to start messaging.</p>}
       </section>
     </div>
