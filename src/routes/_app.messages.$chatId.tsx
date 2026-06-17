@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ref as dbRef, onValue, push, set as dbSet, serverTimestamp as rtdbTime, onDisconnect, remove, update } from "firebase/database";
+import { ref as dbRef, onValue, push, set as dbSet, onDisconnect, remove, update } from "firebase/database";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "sonner";
 import { rtdb, db } from "../lib/firebase";
@@ -19,6 +19,13 @@ export const Route = createFileRoute("/_app/messages/$chatId")({
   component: Chat,
 });
 
+const chatMembersFromId = (chatId: string) => chatId.split("_").filter(Boolean);
+const toMemberMap = (members: string[]) =>
+  members.reduce<Record<string, true>>((acc, uid) => {
+    acc[uid] = true;
+    return acc;
+  }, {});
+
 function Chat() {
   const { chatId } = Route.useParams();
   const { user, profile } = useAuth();
@@ -29,28 +36,64 @@ function Chat() {
   const [typing, setTyping] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
   const [presence, setPresence] = useState<any>(null);
+  const [chatReady, setChatReady] = useState(false);
+  const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Load chat metadata + other user
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
+    let stopPresence: (() => void) | undefined;
+    let stopTyping: (() => void) | undefined;
+    setChatReady(false);
     (async () => {
-      const cs = await getDoc(doc(db, "chats", chatId));
-      const members = cs.data()?.members ?? [];
+      let members = chatMembersFromId(chatId);
+      try {
+        const cs = await getDoc(doc(db, "chats", chatId));
+        const docMembers = cs.data()?.members;
+        if (Array.isArray(docMembers) && docMembers.includes(user.uid)) members = docMembers;
+      } catch (err) {
+        console.warn("chat metadata unavailable", err);
+      }
       const otherId = members.find((m: string) => m !== user.uid);
+      if (!otherId) {
+        if (!cancelled) {
+          toast.error("This conversation link is invalid.");
+          setChatReady(true);
+        }
+        return;
+      }
+
+      await dbSet(dbRef(rtdb, `chatMembers/${chatId}`), toMemberMap([user.uid, otherId])).catch((err) => {
+        console.warn("chat membership mirror unavailable", err);
+      });
+
       if (otherId) {
         const u = await getDoc(doc(db, "users", otherId));
+        if (cancelled) return;
         setOther({ uid: otherId, ...u.data() });
         // presence
-        onValue(dbRef(rtdb, `presence/${otherId}`), (snap) => setPresence(snap.val()));
+        stopPresence = onValue(dbRef(rtdb, `presence/${otherId}`), (snap) => setPresence(snap.val()));
         // typing
-        onValue(dbRef(rtdb, `typing/${chatId}/${otherId}`), (snap) => setOtherTyping(!!snap.val()));
+        stopTyping = onValue(dbRef(rtdb, `typing/${chatId}/${otherId}`), (snap) => setOtherTyping(!!snap.val()));
       }
-    })();
+      setChatReady(true);
+    })().catch((err) => {
+      console.error("load chat failed", err);
+      toast.error(err?.message ?? "Could not open this conversation.");
+      setChatReady(true);
+    });
+    return () => {
+      cancelled = true;
+      stopPresence?.();
+      stopTyping?.();
+    };
   }, [chatId, user]);
 
   // Subscribe messages
   useEffect(() => {
+    if (!user || !chatReady) return;
     const r = dbRef(rtdb, `messages/${chatId}`);
     const unsub = onValue(r, (snap) => {
       const arr: any[] = [];
@@ -61,55 +104,61 @@ function Chat() {
       if (user) {
         arr.forEach((m) => {
           if (m.senderId !== user.uid && !m.readBy?.[user.uid]) {
-            update(dbRef(rtdb, `messages/${chatId}/${m.id}/readBy`), { [user.uid]: true });
+            update(dbRef(rtdb, `messages/${chatId}/${m.id}/readBy`), { [user.uid]: true }).catch(() => {});
           }
         });
       }
       setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
+    }, (err) => {
+      console.error("load messages failed", err);
+      toast.error("Could not load messages. Publish the Firebase Realtime Database rules from FIREBASE_SECURITY_RULES.txt.");
     });
     return unsub;
-  }, [chatId, user]);
+  }, [chatId, user, chatReady]);
 
   // Typing indicator
   useEffect(() => {
-    if (!user) return;
+    if (!user || !chatReady) return;
     const tref = dbRef(rtdb, `typing/${chatId}/${user.uid}`);
-    dbSet(tref, typing);
+    dbSet(tref, typing).catch(() => {});
     onDisconnect(tref).set(false);
-  }, [typing, chatId, user]);
+  }, [typing, chatId, user, chatReady]);
 
   async function send(content: { text?: string; imageUrl?: string }) {
-    if (!user || !profile) return;
+    if (!user) return false;
+    setSending(true);
     try {
       // Derive members from chatId (sorted "uidA_uidB") so the doc always has both
-      const members = chatId.split("_");
+      const members = chatMembersFromId(chatId);
       const otherId = other?.uid ?? members.find((m: string) => m !== user.uid);
-      const memberList = otherId ? Array.from(new Set([user.uid, otherId])) : members;
+      if (!otherId) throw new Error("Could not find the other person in this chat.");
+      const memberList = Array.from(new Set([user.uid, otherId])).sort();
 
-      // Ensure chat doc exists with members BEFORE writing message so the friend can find it
-      await setDoc(
-        doc(db, "chats", chatId),
-        {
-          members: memberList,
-          lastMessage: content.text || "📷 Image",
-          lastMessageAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true },
-      );
+      // Ensure chat metadata exists so both users can find/open the conversation.
+      await setDoc(doc(db, "chats", chatId), { members: memberList, updatedAt: serverTimestamp() }, { merge: true });
+      await dbSet(dbRef(rtdb, `chatMembers/${chatId}`), toMemberMap(memberList)).catch(() => {});
 
       const r = push(dbRef(rtdb, `messages/${chatId}`));
       await dbSet(r, {
         senderId: user.uid,
-        senderName: profile.username,
+        senderName: profile?.username ?? user.displayName ?? user.email ?? "Member",
         text: content.text ?? "",
         imageUrl: content.imageUrl ?? "",
         createdAt: Date.now(),
         readBy: { [user.uid]: true },
       });
+      await setDoc(
+        doc(db, "chats", chatId),
+        { members: memberList, lastMessage: content.text || "📷 Image", lastMessageAt: serverTimestamp(), updatedAt: serverTimestamp() },
+        { merge: true },
+      );
+      return true;
     } catch (err: any) {
       console.error("send message failed", err);
       toast.error(err?.message ?? "Could not send message. Check your Firebase rules.");
+      return false;
+    } finally {
+      setSending(false);
     }
   }
 
@@ -120,18 +169,23 @@ function Chat() {
     const t = text.trim();
     setText("");
     setTyping(false);
-    await send({ text: t });
+    const sent = await send({ text: t });
+    if (!sent) setText(t);
   }
 
   async function onImage(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f || !user) return;
-    const url = await uploadFile(`chat/${chatId}/${Date.now()}-${f.name}`, f);
-    await send({ imageUrl: url });
+    try {
+      const url = await uploadFile(`chat/${chatId}/${Date.now()}-${f.name}`, f);
+      await send({ imageUrl: url });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not upload image.");
+    }
   }
 
   async function deleteMsg(id: string) {
-    await remove(dbRef(rtdb, `messages/${chatId}/${id}`));
+    await remove(dbRef(rtdb, `messages/${chatId}/${id}`)).catch((err) => toast.error(err?.message ?? "Could not delete message."));
   }
 
   const isOnline = presence?.online;
