@@ -82,7 +82,7 @@ service cloud.firestore {
         ".read": "auth != null && root.child('chatMembers').child($chatId).child(auth.uid).val() == true",
         ".write": "auth != null && root.child('chatMembers').child($chatId).child(auth.uid).val() == true",
         "$messageId": {
-          ".validate": "newData.hasChildren(['senderId', 'createdAt', 'readBy']) && newData.child('senderId').val() == auth.uid"
+          ".validate": "newData.hasChildren(['senderId', 'createdAt', 'readBy']) && newData.child('senderId').isString() && newData.child('createdAt').isNumber()"
         }
       }
     }
