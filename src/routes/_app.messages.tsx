@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { collection, query, where, onSnapshot, doc, getDoc, getDocs, limit } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -16,9 +16,11 @@ export const Route = createFileRoute("/_app/messages")({
 function Messages() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [chats, setChats] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [searchRes, setSearchRes] = useState<any[]>([]);
+  const chatOpen = pathname.startsWith("/messages/");
 
   useEffect(() => {
     if (!user) return;
@@ -68,8 +70,8 @@ function Messages() {
     }
   }
 
-  return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+  const inbox = (
+    <div className="w-full max-w-2xl mx-auto px-4 py-6">
       <h1 className="font-display text-3xl font-bold mb-6">Messages</h1>
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -97,6 +99,15 @@ function Messages() {
           </Link>
         ))}
       </div>
+    </div>
+  );
+
+  return (
+    <div className="md:grid md:grid-cols-[22rem_minmax(0,1fr)] md:h-screen">
+      <aside className={chatOpen ? "hidden md:block md:border-r md:border-border md:overflow-y-auto" : "md:border-r md:border-border md:overflow-y-auto"}>{inbox}</aside>
+      <section className={chatOpen ? "min-h-[calc(100vh-3.5rem)] md:min-h-0" : "hidden md:grid place-items-center text-sm text-muted-foreground"}>
+        {chatOpen ? <Outlet /> : <p>Select a chat or search for someone to start messaging.</p>}
+      </section>
     </div>
   );
 }
