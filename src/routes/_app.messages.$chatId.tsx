@@ -297,14 +297,21 @@ function Chat() {
           const mine = message.senderId === user?.uid;
           const readByOther = other && message.readBy?.[other.uid];
           return (
-            <div key={message.id} className={`group flex ${mine ? "justify-end" : "justify-start"}`}>
+            <div
+              key={message.id}
+              className={`group flex ${mine ? "justify-end" : "justify-start"}`}
+            >
               <div
                 className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${
                   mine ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground"
                 }`}
               >
                 {message.imageUrl && (
-                  <img src={message.imageUrl} alt="Chat attachment" className="mb-1 max-w-xs rounded-xl" />
+                  <img
+                    src={message.imageUrl}
+                    alt="Chat attachment"
+                    className="mb-1 max-w-xs rounded-xl"
+                  />
                 )}
                 {message.text}
                 <div
@@ -333,7 +340,10 @@ function Chat() {
         })}
       </div>
 
-      <form onSubmit={onSend} className="flex items-center gap-2 border-t border-border bg-card p-3">
+      <form
+        onSubmit={onSend}
+        className="flex items-center gap-2 border-t border-border bg-card p-3"
+      >
         <label className="cursor-pointer rounded-full p-2 hover:bg-accent">
           <ImageIcon className="h-5 w-5" />
           <input type="file" accept="image/*" className="hidden" onChange={onImage} />
