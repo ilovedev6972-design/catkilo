@@ -207,6 +207,11 @@ function Chat() {
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2">
+        {chatReady && messages.length === 0 && (
+          <div className="grid h-full place-items-center text-center text-sm text-muted-foreground">
+            <p>No messages yet.</p>
+          </div>
+        )}
         {messages.map((m) => {
           const mine = m.senderId === user?.uid;
           const readByOther = other && m.readBy?.[other.uid];
@@ -246,7 +251,7 @@ function Chat() {
           placeholder="Message..."
           className="rounded-full bg-accent border-0"
         />
-        <Button type="submit" size="icon" disabled={!text.trim()}><Send className="h-4 w-4" /></Button>
+        <Button type="submit" size="icon" disabled={!text.trim() || sending || !chatReady}><Send className="h-4 w-4" /></Button>
       </form>
     </div>
   );
